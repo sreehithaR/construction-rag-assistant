@@ -67,10 +67,7 @@ def generate_answer(query, retrieved_chunks):
     context = "\n\n".join(retrieved_chunks)
 
     prompt = f"""
-You are a construction assistant.
-
-Answer ONLY using the context below.
-If not found, say: Not available in documents.
+Answer the question using ONLY the context below.
 
 Context:
 {context}
@@ -79,17 +76,16 @@ Question:
 {query}
 """
 
-    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
 
     headers = {
-        "Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"
+        "Authorization": f"Bearer {(st.secrets["HUGGINGFACE_API_KEY"])}"
     }
 
     payload = {
         "inputs": prompt,
         "parameters": {
-            "max_new_tokens": 200,
-            "temperature": 0.5
+            "max_new_tokens": 150
         }
     }
 
@@ -97,7 +93,9 @@ Question:
 
     data = response.json()
 
-    # Handle response properly
+    # DEBUG (very important)
+    st.write("DEBUG:", data)
+
     if isinstance(data, list):
         return data[0].get("generated_text", "No response")
 
