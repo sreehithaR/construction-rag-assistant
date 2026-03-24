@@ -5,6 +5,7 @@ import faiss
 import numpy as np
 from openai import OpenAI
 
+st.write("API Key Loaded:", bool(os.getenv("OPENAI_API_KEY")))
 if not os.getenv("OPENAI_API_KEY"):
     st.error("API key not found. Please add it in Streamlit Secrets.")
 
