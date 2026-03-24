@@ -5,14 +5,11 @@ import faiss
 import numpy as np
 import requests
 
-st.write("API Key Loaded:", bool(os.getenv("OPENAI_API_KEY")))
-
-    st.error("API key not found. Please add it in Streamlit Secrets.")
-
-
-
 st.title("🏗️ Construction RAG Assistant")
 
+# -------------------------
+# Load Documents
+# -------------------------
 def load_documents(folder_path):
     documents = []
     for file_name in os.listdir(folder_path):
@@ -21,6 +18,10 @@ def load_documents(folder_path):
                 documents.append(f.read())
     return documents
 
+
+# -------------------------
+# Chunking
+# -------------------------
 def chunk_documents(documents, chunk_size=300):
     chunks = []
     for doc in documents:
@@ -29,6 +30,10 @@ def chunk_documents(documents, chunk_size=300):
             chunks.append(" ".join(words[i:i+chunk_size]))
     return chunks
 
+
+# -------------------------
+# Setup
+# -------------------------
 @st.cache_resource
 def setup_rag():
     documents = load_documents("data")
@@ -42,16 +47,23 @@ def setup_rag():
 
     return model, index, chunks
 
+
 model, index, chunks = setup_rag()
 
+
+# -------------------------
+# Retrieval
+# -------------------------
 def retrieve(query, k=3):
     query_embedding = model.encode([query])
     distances, indices = index.search(query_embedding, k)
     return [chunks[i] for i in indices[0]]
 
 
-
-   def generate_answer(query, retrieved_chunks):
+# -------------------------
+# Answer Generation (FREE HF API)
+# -------------------------
+def generate_answer(query, retrieved_chunks):
     context = "\n\n".join(retrieved_chunks)
 
     prompt = f"""
@@ -84,6 +96,10 @@ Question:
     except:
         return "Error generating response"
 
+
+# -------------------------
+# UI
+# -------------------------
 query = st.text_input("Ask a question:")
 
 if query:
