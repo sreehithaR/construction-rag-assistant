@@ -20,7 +20,7 @@ def load_documents(folder_path):
 
 
 # -------------------------
-# Chunking
+# Chunk Documents
 # -------------------------
 def chunk_documents(documents, chunk_size=300):
     chunks = []
@@ -32,7 +32,7 @@ def chunk_documents(documents, chunk_size=300):
 
 
 # -------------------------
-# Setup
+# Setup RAG (Embeddings + FAISS)
 # -------------------------
 @st.cache_resource
 def setup_rag():
@@ -52,7 +52,7 @@ model, index, chunks = setup_rag()
 
 
 # -------------------------
-# Retrieval
+# Retrieval Function
 # -------------------------
 def retrieve(query, k=3):
     query_embedding = model.encode([query])
@@ -61,7 +61,7 @@ def retrieve(query, k=3):
 
 
 # -------------------------
-# Answer Generation (FREE HF API)
+# Answer Generation (FREE HuggingFace API)
 # -------------------------
 def generate_answer(query, retrieved_chunks):
     context = "\n\n".join(retrieved_chunks)
@@ -79,26 +79,33 @@ Question:
 {query}
 """
 
-    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 
     headers = {
         "Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"
     }
 
-    response = requests.post(
-        API_URL,
-        headers=headers,
-        json={"inputs": prompt}
-    )
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": 200,
+            "temperature": 0.5
+        }
+    }
+
+    response = requests.post(API_URL, headers=headers, json=payload)
 
     data = response.json()
 
-if isinstance(data, list):
-    return data[0].get("generated_text", "No response")
-elif isinstance(data, dict) and "error" in data:
-    return f"API Error: {data['error']}"
-else:
-    return str(data)
+    # Handle response properly
+    if isinstance(data, list):
+        return data[0].get("generated_text", "No response")
+
+    elif isinstance(data, dict) and "error" in data:
+        return f"API Error: {data['error']}"
+
+    else:
+        return str(data)
 
 
 # -------------------------
