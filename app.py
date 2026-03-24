@@ -90,8 +90,9 @@ def generate_answer(query, retrieved_chunks):
     prompt = f"""
 You are a construction assistant.
 
-Answer ONLY using the context below.
-If the answer is not present, say: "Not available in documents."
+STRICT RULES:
+- Answer ONLY using the context
+- If not found, say: Not available in documents
 
 Context:
 {context}
@@ -100,16 +101,35 @@ Question:
 {query}
 """
 
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"
+    }
+
     response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "llama3",
-            "prompt": prompt,
-            "stream": False
-        }
+        API_URL,
+        headers=headers,
+        json={"inputs": prompt}
     )
 
-    return response.json()["response"]
+    data = response.json()
+
+    # 🔍 Debug print (IMPORTANT)
+    print("HF RESPONSE:", data)
+
+    # ✅ Safe parsing
+    if isinstance(data, list):
+        return data[0].get("generated_text", "No response")
+    
+    elif "generated_text" in data:
+        return data["generated_text"]
+    
+    elif "error" in data:
+        return f"API Error: {data['error']}"
+    
+    else:
+        return "Unexpected response format"
 
 
 
