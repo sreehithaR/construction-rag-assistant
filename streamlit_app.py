@@ -91,10 +91,14 @@ Question:
         json={"inputs": prompt}
     )
 
-    try:
-        return response.json()[0]["generated_text"]
-    except:
-        return "Error generating response"
+    data = response.json()
+
+if isinstance(data, list):
+    return data[0].get("generated_text", "No response")
+elif isinstance(data, dict) and "error" in data:
+    return f"API Error: {data['error']}"
+else:
+    return str(data)
 
 
 # -------------------------
