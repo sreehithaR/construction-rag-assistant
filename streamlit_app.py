@@ -64,58 +64,16 @@ def retrieve(query, k=3):
 # Answer Generation (FREE HuggingFace API)
 # -------------------------
 def generate_answer(query, retrieved_chunks):
-    context = "\n\n".join(retrieved_chunks)
+    # Simple answer generation from retrieved context
+    if not retrieved_chunks:
+        return "No relevant information found."
 
-    prompt = f"""
-You are a construction assistant.
+    answer = "Based on the documents:\n\n"
 
-Answer ONLY using the context below.
-If not found, say: Not available in documents.
+    for i, chunk in enumerate(retrieved_chunks, 1):
+        answer += f"{i}. {chunk[:300]}...\n\n"
 
-Context:
-{context}
-
-Question:
-{query}
-"""
-
-    API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-base"
-
-    headers = {
-        "Authorization": f"Bearer {st.secrets['HUGGINGFACE_API_KEY']}"
-    }
-
-    try:
-        response = requests.post(
-            API_URL,
-            headers=headers,
-            json={"inputs": prompt},
-            timeout=30
-        )
-
-        # 🔥 IMPORTANT: handle non-JSON response
-        if response.status_code != 200:
-            return f"API Error: {response.text}"
-
-        try:
-            data = response.json()
-        except:
-            return f"Invalid response from API: {response.text}"
-
-        # ✅ SAFE parsing
-        if isinstance(data, list):
-            return data[0].get("generated_text", "No response")
-
-        elif isinstance(data, dict):
-            if "generated_text" in data:
-                return data["generated_text"]
-            elif "error" in data:
-                return f"API Error: {data['error']}"
-
-        return "Unexpected response format"
-
-    except Exception as e:
-        return f"Request failed: {str(e)}"
+    return answer
 
 
 # -------------------------
