@@ -3,13 +3,13 @@ import os
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
-from openai import OpenAI
+import requests
 
 st.write("API Key Loaded:", bool(os.getenv("OPENAI_API_KEY")))
-if not os.getenv("OPENAI_API_KEY"):
+
     st.error("API key not found. Please add it in Streamlit Secrets.")
 
-client = OpenAI()
+
 
 st.title("🏗️ Construction RAG Assistant")
 
@@ -49,14 +49,16 @@ def retrieve(query, k=3):
     distances, indices = index.search(query_embedding, k)
     return [chunks[i] for i in indices[0]]
 
-def generate_answer(query, retrieved_chunks):
+
+
+   def generate_answer(query, retrieved_chunks):
     context = "\n\n".join(retrieved_chunks)
 
     prompt = f"""
 You are a construction assistant.
 
 Answer ONLY using the context below.
-If the answer is not present, say: "Not available in documents."
+If not found, say: Not available in documents.
 
 Context:
 {context}
@@ -65,12 +67,22 @@ Question:
 {query}
 """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+
+    headers = {
+        "Authorization": f"Bearer {os.getenv('HUGGINGFACE_API_KEY')}"
+    }
+
+    response = requests.post(
+        API_URL,
+        headers=headers,
+        json={"inputs": prompt}
     )
 
-    return response.choices[0].message.content
+    try:
+        return response.json()[0]["generated_text"]
+    except:
+        return "Error generating response"
 
 query = st.text_input("Ask a question:")
 
