@@ -67,7 +67,10 @@ def generate_answer(query, retrieved_chunks):
     context = "\n\n".join(retrieved_chunks)
 
     prompt = f"""
-Answer the question using ONLY the context below.
+You are a construction assistant.
+
+Answer ONLY using the context below.
+If not found, say: Not available in documents.
 
 Context:
 {context}
@@ -79,31 +82,40 @@ Question:
     API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-base"
 
     headers = {
-        "Authorization": f"Bearer {(st.secrets["HUGGINGFACE_API_KEY"])}"
+        "Authorization": f"Bearer {st.secrets['HUGGINGFACE_API_KEY']}"
     }
 
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 150
-        }
-    }
+    try:
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json={"inputs": prompt},
+            timeout=30
+        )
 
-    response = requests.post(API_URL, headers=headers, json=payload)
+        # 🔥 IMPORTANT: handle non-JSON response
+        if response.status_code != 200:
+            return f"API Error: {response.text}"
 
-    data = response.json()
+        try:
+            data = response.json()
+        except:
+            return f"Invalid response from API: {response.text}"
 
-    # DEBUG (very important)
-    st.write("DEBUG:", data)
+        # ✅ SAFE parsing
+        if isinstance(data, list):
+            return data[0].get("generated_text", "No response")
 
-    if isinstance(data, list):
-        return data[0].get("generated_text", "No response")
+        elif isinstance(data, dict):
+            if "generated_text" in data:
+                return data["generated_text"]
+            elif "error" in data:
+                return f"API Error: {data['error']}"
 
-    elif isinstance(data, dict) and "error" in data:
-        return f"API Error: {data['error']}"
+        return "Unexpected response format"
 
-    else:
-        return str(data)
+    except Exception as e:
+        return f"Request failed: {str(e)}"
 
 
 # -------------------------
